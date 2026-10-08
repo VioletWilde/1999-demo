@@ -13,3 +13,5 @@
 .episodes .episode.active{opacity:1}.episode h2,.episode p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .episodes::-webkit-scrollbar{height:5px}.episodes::-webkit-scrollbar-thumb{background:#d5bea077;border-radius:4px}
 @media(max-width:700px){.episodes{width:100%;gap:24px}.episodes .episode{display:block;flex-basis:245px}.scene-footer{background:linear-gradient(transparent,rgba(18,25,29,.12) 30%,rgba(18,25,29,.35))}}
+
+.ui-hidden .wander-header,.ui-hidden .scene-footer,.ui-hidden .menu,.ui-hidden .intro,.ui-hidden .toast{display:none!important}.restore-ui{position:fixed;right:24px;bottom:24px;z-index:6;min-height:44px;padding:10px 15px;font-size:15px;font-weight:500;color:#f3eedf;background:#19222588;border:1px solid #e4ddc14d;border-radius:4px;opacity:.6;transition:opacity .2s}.restore-ui:hover,.restore-ui:focus-visible{opacity:1;background:#192225dd}@media(max-width:700px){.restore-ui{right:16px;bottom:max(16px,env(safe-area-inset-bottom));opacity:.8}}
