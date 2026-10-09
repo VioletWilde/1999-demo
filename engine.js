@@ -1,3 +1,15 @@
+
+// Background-based cover framing. Foreground props must not enlarge camera bounds.
+const sceneBoundsCache=new WeakMap();
+function sceneBounds(scene=state.current){
+ if(!scene)return null;if(sceneBoundsCache.has(scene))return sceneBoundsCache.get(scene);
+ let backgrounds=scene.draws.filter(m=>/background/i.test(m.name));
+ if(!backgrounds.length){const area=m=>{const xs=m.vertices.map(v=>v[0]),ys=m.vertices.map(v=>v[1]);return (Math.max(...xs)-Math.min(...xs))*(Math.max(...ys)-Math.min(...ys))};backgrounds=[...scene.draws].sort((a,b)=>area(b)-area(a)).slice(0,1)}
+ const vertices=backgrounds.flatMap(m=>m.vertices),xs=vertices.map(v=>v[0]),ys=vertices.map(v=>v[1]);const b={left:Math.min(...xs),right:Math.max(...xs),bottom:Math.min(...ys),top:Math.max(...ys)};sceneBoundsCache.set(scene,b);return b;
+}
+function minimumZoom(scene=state.current){const b=sceneBounds(scene);if(!b)return .45;const base=h/12.8;return Math.max(.45,(w+8)/Math.max(.001,b.right-b.left)/base,(h+8)/Math.max(.001,b.top-b.bottom)/base)}
+function constrainView(scene=state.current){const b=sceneBounds(scene);if(!b)return;state.zoom=Math.max(minimumZoom(scene),state.zoom);const s=scale(),left=w/2/s,right=w/2/s,top=h*.47/s,bottom=h*.53/s;const clamp=(v,lo,hi)=>lo<=hi?Math.max(lo,Math.min(hi,v)):(lo+hi)/2;state.center=[clamp(state.center[0],b.left+left+2/s,b.right-right-2/s),clamp(state.center[1],b.bottom+bottom+2/s,b.top-top-2/s)]}
+
 function scale(){return h/12.8*state.zoom}
 function project(v){return [(v[0]-state.center[0])*scale()+w/2,(-v[1]+state.center[1])*scale()+h*.47]}
 function triangle(image,src,dst,c=ctx){const [s0,s1,s2]=src,[d0,d1,d2]=dst;let sx=s1[0]-s0[0],sy=s1[1]-s0[1],tx=s2[0]-s0[0],ty=s2[1]-s0[1],det=sx*ty-tx*sy;if(Math.abs(det)<.0001)return;const dx=d1[0]-d0[0],dy=d1[1]-d0[1],ex=d2[0]-d0[0],ey=d2[1]-d0[1];let a=(dx*ty-ex*sy)/det,b=(dy*ty-ey*sy)/det,cc=(ex*sx-dx*tx)/det,d=(ey*sx-dy*tx)/det;c.save();c.beginPath();const mid=[(d0[0]+d1[0]+d2[0])/3,(d0[1]+d1[1]+d2[1])/3],edge=[d0,d1,d2].map(p=>{const dx=p[0]-mid[0],dy=p[1]-mid[1],n=Math.hypot(dx,dy)||1;return [p[0]+dx/n*.65,p[1]+dy/n*.65]});c.moveTo(...edge[0]);c.lineTo(...edge[1]);c.lineTo(...edge[2]);c.closePath();c.clip();c.transform(a,b,cc,d,d0[0]-a*s0[0]-cc*s0[1],d0[1]-b*s0[0]-d*s0[1]);c.drawImage(image,0,0);c.restore()}
