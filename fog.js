@@ -1,6 +1,15 @@
 // Translated from the extracted fx_smoke_position GLES fragment program.
-// Chapter hole positions follow DungeonMapHoleView: param + worldPos - initPos.
+// DungeonMapScene adds the camera parent's Y to the scene root. Exported meshes
+// omit that parent, so local holes must subtract it as well as map initPos.
 let fogRenderer;
+function fogHoles(fog){
+ const offset=FOG_COORDINATES.sceneRootOffset;
+ const holes=Array.from({length:5},()=>[10000,10000,100,0]);
+ for(const hole of fog.holes){if(hole.index<1||hole.index>5)continue;
+  holes[hole.index-1]=[hole.vector[0]+fog.center[0]-offset[0],hole.vector[1]+fog.center[1]-offset[1],hole.vector[2],0];
+ }
+ return holes;
+}
 function makeFogRenderer(){
  const surface=document.createElement('canvas'),gl=surface.getContext('webgl',{alpha:true,premultipliedAlpha:false,preserveDrawingBuffer:true,antialias:false});
  if(!gl)return makeCPUFogRenderer();
@@ -13,4 +22,4 @@ function makeFogRenderer(){
 
 function makeCPUFogRenderer(){const surface=document.createElement('canvas'),c=surface.getContext('2d');return {surface,draw(layer,holes){const ratio=Math.min(1,520/w);surface.width=Math.max(1,Math.round(w*ratio));surface.height=Math.max(1,Math.round(h*ratio));const im=c.createImageData(surface.width,surface.height),sc=scale(),[a,b,ellipse,radius]=layer.distort;for(let y=0;y<surface.height;y++)for(let x=0;x<surface.width;x++){const wx=(x/ratio-w/2)/sc+state.center[0],wy=-(y/ratio-h*.47)/sc+state.center[1];let alpha=layer.color[3];for(let i=0;i<5;i++){const hole=holes[i];let q=Math.max(0,Math.min(1,(Math.hypot(wx-hole[0],(wy-hole[1])*ellipse)*radius+hole[2])*a+b));if(layer.smooth&&i<4)q=q*q*q*(3-2*q);alpha*=q}const idx=(y*surface.width+x)*4;for(let k=0;k<3;k++)im.data[idx+k]=layer.color[k]*255;im.data[idx+3]=alpha*255}c.putImageData(im,0,0);c.globalCompositeOperation='destination-in';c.beginPath();for(const face of layer.faces){face.forEach((idx,i)=>{const xy=project(layer.vertices[idx]);if(i)c.lineTo(xy[0]*ratio,xy[1]*ratio);else c.moveTo(xy[0]*ratio,xy[1]*ratio)});c.closePath()}c.fill();c.globalCompositeOperation='source-over'}}}
 
-function renderFog(scene,opacity=1){const fog=scene&&FOG_DATA[scene.id];if(!fog?.holes?.length)return;try{if(fogRenderer===undefined)fogRenderer=makeFogRenderer();if(!fogRenderer)return;const holes=Array.from({length:5},()=>[10000,10000,100,0]);for(const hole of fog.holes){if(hole.index<1||hole.index>5)continue;holes[hole.index-1]=[hole.vector[0]+fog.center[0],hole.vector[1]+fog.center[1],hole.vector[2],0]}for(const layer of fog.layers){if(layer.texture?.m_PathID)continue;fogRenderer.draw(layer,holes);ctx.save();ctx.globalAlpha=opacity;ctx.drawImage(fogRenderer.surface,0,0,w,h);ctx.restore()}}catch(e){fogRenderer=null;console.error('Fog renderer unavailable',e)}}
+function renderFog(scene,opacity=1){const fog=scene&&FOG_DATA[scene.id];if(!fog?.holes?.length)return;try{if(fogRenderer===undefined)fogRenderer=makeFogRenderer();if(!fogRenderer)return;const holes=fogHoles(fog);for(const layer of fog.layers){if(layer.texture?.m_PathID)continue;fogRenderer.draw(layer,holes);ctx.save();ctx.globalAlpha=opacity;ctx.drawImage(fogRenderer.surface,0,0,w,h);ctx.restore()}}catch(e){fogRenderer=null;console.error('Fog renderer unavailable',e)}}
